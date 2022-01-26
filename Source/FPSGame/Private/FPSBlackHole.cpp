@@ -16,19 +16,22 @@ AFPSBlackHole::AFPSBlackHole()
 	RootComponent = HoleMeshComp;
 
 	AttractSphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("AttractSphereComp"));
-	AttractSphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	AttractSphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AttractSphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	AttractSphereComp->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
+	AttractSphereComp->SetSphereRadius(1000.0f);
 	AttractSphereComp->SetupAttachment(HoleMeshComp);
 
+
 	DestroySphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("DestroySphereComp"));
-	DestroySphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	DestroySphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	DestroySphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	DestroySphereComp->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
 	DestroySphereComp->SetupAttachment(HoleMeshComp);
 
 	
-
+	RadiusBlackHole = 1000.0f;
+	AttractStrength = -2000.0f;
 }
 
 // Called when the game starts or when spawned
@@ -36,19 +39,21 @@ void AFPSBlackHole::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	AttractSphereComp->OnComponentBeginOverlap.AddDynamic(this, &AFPSBlackHole::Attract);
+	DestroySphereComp->OnComponentBeginOverlap.AddDynamic(this, &AFPSBlackHole::BlackHoleDestroy);
 }
 
-void AFPSBlackHole::Attract(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+
+void AFPSBlackHole::Attract()
 {
-	if (IsValid(OtherComp))
+	for (UPrimitiveComponent* Component : OverlappingComp)
 	{
-		//OtherComp->AddRadialForce(this->GetActorLocation(), )
+		Component->AddRadialForce(this->GetActorLocation(), RadiusBlackHole, AttractStrength, ERadialImpulseFalloff::RIF_Constant, true);
 	}
 }
 
-void AFPSBlackHole::Destroy(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AFPSBlackHole::BlackHoleDestroy(class UPrimitiveComponent* const OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	OtherActor->Destroy();
 
 }
 
@@ -57,5 +62,11 @@ void AFPSBlackHole::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	AttractSphereComp->GetOverlappingComponents(OverlappingComp);
+
+	if (OverlappingComp.Num() > 0)
+	{
+		Attract();
+	}
 }
 
