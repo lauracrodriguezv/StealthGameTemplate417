@@ -17,29 +17,30 @@ AFPSLaunchpad::AFPSLaunchpad()
 	OverlappingComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	OverlappingComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	OverlappingComponent->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
-	OverlappingComponent->SetBoxExtent(FVector(200.0f));
-	RootComponent = OverlappingComponent;
+	OverlappingComponent->SetupAttachment(LaunchpadMeshComponent);
 
 	OverlappingComponent->OnComponentBeginOverlap.AddDynamic(this, &AFPSLaunchpad::ActiveLaunchpad); 
 
-	launchpadImpulse = FVector(0.0f, 0.0f, 1000.0f);
+	LaunchpadImpulse = FVector(0.0f, 0.0f, 1000.0f);
 }
 
 void AFPSLaunchpad::ActiveLaunchpad(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (IsValid(OtherActor))
+	if (!IsValid(OtherActor))
 	{
-		AFPSCharacter* OverlappedCharacter = Cast<AFPSCharacter>(OtherActor);
-		if (IsValid(OverlappedCharacter))
-		{
-			OverlappedCharacter->LaunchCharacter(launchpadImpulse, false, true);
-		} 		
+		return;
 	}
+
+	AFPSCharacter* OverlappedCharacter = Cast<AFPSCharacter>(OtherActor);
+	if (IsValid(OverlappedCharacter))
+	{
+		OverlappedCharacter->LaunchCharacter(LaunchpadImpulse, false, true);
+	} 		
 
 	if(IsValid(OtherComp) && OtherComp->IsSimulatingPhysics())
 	{
-		OtherComp->AddImpulse(launchpadImpulse, NAME_None, true);
+		OtherComp->AddImpulse(LaunchpadImpulse, NAME_None, true);
 	}
 
 	UGameplayStatics::SpawnEmitterAtLocation(this, LaunchFX, GetActorLocation());

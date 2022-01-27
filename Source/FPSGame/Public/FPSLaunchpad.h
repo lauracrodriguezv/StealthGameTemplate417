@@ -28,7 +28,7 @@ protected:
 protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay")
-	FVector launchpadImpulse;
+	FVector LaunchpadImpulse;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
 	UParticleSystem* LaunchFX;
