@@ -31,13 +31,13 @@ protected:
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-		UStaticMeshComponent* HoleMeshComp;
+	UStaticMeshComponent* HoleMeshComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-		USphereComponent* AttractSphereComp;
+	USphereComponent* AttractSphereComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-		USphereComponent* DestroySphereComp;
+	USphereComponent* DestroySphereComp;
 
 protected:
 	// Called when the game starts or when spawned
