@@ -43,9 +43,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	bool bIsSeeingPlayer;
 
-	UPROPERTY(EditInstanceOnly)
-	bool bPatrol;
-
 	int PatrolPointIndex;
 
 	UPROPERTY(EditInstanceOnly, Category = "AI", meta = (EditCondition="bPatrol"))
