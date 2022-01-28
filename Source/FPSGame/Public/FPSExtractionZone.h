@@ -20,7 +20,11 @@ public:
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-		UBoxComponent* OverlappingComponent;
+	UBoxComponent* OverlappingComponent;
+
+	UPROPERTY(VisibleAnywhere, Category="Components")
+	UDecalComponent* DecalComponent;
+	
 
 protected:
 
@@ -28,6 +32,7 @@ protected:
 	UFUNCTION()
 	void HandleOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-
+    UPROPERTY(EditDefaultsOnly, Category= "Sounds")
+	USoundBase* ObjectiveMissingSound;
 
 };
