@@ -5,6 +5,7 @@
 #include "FPSCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
+#include "FPSGameState.h"
 
 AFPSGameMode::AFPSGameMode()
 {
@@ -15,31 +16,42 @@ AFPSGameMode::AFPSGameMode()
 	// use our custom HUD class
 	HUDClass = AFPSHUD::StaticClass();
 
-	
+	GameStateClass = AFPSGameState::StaticClass();
 }
 
-void AFPSGameMode::CompleteMission(APawn* InstigatorPawn)
+void AFPSGameMode::CompleteMission(APawn* InstigatorPawn, bool bMissionComplete)
 {
 	if(InstigatorPawn)
 	{
-		InstigatorPawn->DisableInput(nullptr);
+		if(IsValid(SpectatingViewPointClass))
+		{ 
+			TArray<AActor*> SpectatingCamerasActors;
+			UGameplayStatics::GetAllActorsOfClass(this, SpectatingViewPointClass, SpectatingCamerasActors);
 
-		AActor* NewViewTarget;
+			if (SpectatingCamerasActors.Num() > 0)
+			{
+				AActor* NewViewTarget = SpectatingCamerasActors[0];
 
-		TArray<AActor*> SpectatingCamerasActors;
-		UGameplayStatics::GetAllActorsOfClass(this, SpectatingViewPointClass, SpectatingCamerasActors);
-
-		if(SpectatingCamerasActors.Num()>0)
+				for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; It++)
+				{
+					APlayerController* PlayerController = It->Get();
+					if (PlayerController)
+					{
+						PlayerController->SetViewTargetWithBlend(NewViewTarget, 0.5f, EViewTargetBlendFunction::VTBlend_Cubic);
+					}
+				}
+			}
+		}
+		else
 		{
-			
+			 UE_LOG(LogTemp, Warning, TEXT("SpectatingViewPointClass is nullptr, Please update GameMode class with valid subclass. Cannot change spectating view target"));
 		}
 
-		APlayerController* PlayerController = Cast<APlayerController>(InstigatorPawn->GetController());
-		if(PlayerController)
-		{
-			PlayerController->SetViewTargetWithBlend(NewViewTarget, 0.5f, EViewTargetBlendFunction::VTBlend_Cubic);
-		}
 	}	
 
-	BP_OnMissionComplete(InstigatorPawn);	
+	AFPSGameState* GameStateReference = GetGameState<AFPSGameState>();
+	if (GameStateReference)
+	{
+		GameStateReference->MulticastOnMissionComplete(InstigatorPawn, bMissionComplete);
+	}
 }	

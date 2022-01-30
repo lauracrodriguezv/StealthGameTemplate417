@@ -4,6 +4,9 @@
 #include "FPSAIGuard.h"
 #include "Perception/PawnSensingComponent.h"
 #include "DrawDebugHelpers.h"
+#include "FPSGameMode.h"
+#include "Net/UnrealNetwork.h"
+
 
 // Sets default values
 AFPSAIGuard::AFPSAIGuard()
@@ -18,7 +21,8 @@ AFPSAIGuard::AFPSAIGuard()
 
 	PatrolPointIndex = 0;
 	bIsSeeingPlayer = false;
-	
+
+	GuardState = EAIState::GuardState_Idle;
 }
 
 // Called when the game starts or when spawned
@@ -33,41 +37,54 @@ void AFPSAIGuard::OnPawnSeen(APawn* SeenPawn)
 {
 	if (IsValid(SeenPawn))
 	{
+		AFPSGameMode* GameModeReference = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
+		if (GameModeReference)
+		{
+			GameModeReference->CompleteMission(SeenPawn, false);
+		}
+
 		DrawDebugSphere(GetWorld(), SeenPawn->GetActorLocation(), 32.0f, 12, FColor::Red, false, 10.0f);
 	}
+
+	SetGuardState(EAIState::GuardState_Alerted);	
 }
 
 void AFPSAIGuard::OnNoiseHeard(APawn* NoiseInstigator, const FVector& Location, float Volume)
 {
-	DrawDebugSphere(GetWorld(), Location, 32.0f, 12.0f, FColor::Green, false, 10.0f);
+	if (GuardState != EAIState::GuardState_Alerted)
+	{
+		DrawDebugSphere(GetWorld(), Location, 32.0f, 12.0f, FColor::Green, false, 10.0f);
 
-	FVector Direction = Location - GetActorLocation();
-	Direction.Normalize();
+		FVector Direction = Location - GetActorLocation();
+		Direction.Normalize();
 
-	FRotator NewLookAt = FRotationMatrix::MakeFromX(Direction).Rotator();
-	NewLookAt.Pitch = 0.0f;
-	NewLookAt.Roll = 0.0f;
+		FRotator NewLookAt = FRotationMatrix::MakeFromX(Direction).Rotator();
+		NewLookAt.Pitch = 0.0f;
+		NewLookAt.Roll = 0.0f;
 
-	SetActorRotation(NewLookAt);
+		SetActorRotation(NewLookAt);
 
-	bIsSeeingPlayer = true;
+		bIsSeeingPlayer = true;
 
-	GetWorldTimerManager().ClearTimer(TimerHandle_ResetOrientation);
-	GetWorldTimerManager().SetTimer(TimerHandle_ResetOrientation, this, &AFPSAIGuard::ResetOrientation, 3.0f);
+		GetWorldTimerManager().ClearTimer(TimerHandle_ResetOrientation);
+		GetWorldTimerManager().SetTimer(TimerHandle_ResetOrientation, this, &AFPSAIGuard::ResetOrientation, 3.0f);
+
+		SetGuardState(EAIState::GuardState_Suspicious);
+	}
 }
 
 void AFPSAIGuard::ResetOrientation()
 {
-	SetActorRotation(OriginalRotation);
-	bIsSeeingPlayer = false;
+	if (GuardState != EAIState::GuardState_Alerted)
+	{
+		bIsSeeingPlayer = false;
+		SetActorRotation(OriginalRotation);
+		SetGuardState(EAIState::GuardState_Idle);
+	}
 }
 
 void AFPSAIGuard::MoveGuardToNextPatrolPoint()
 {
-	if (bIsSeeingPlayer == true)
-	{
-	    return;
-	}
 
 	if (IsValid(CurrentPatrolPoint))
 	{
@@ -85,6 +102,24 @@ void AFPSAIGuard::MoveGuardToNextPatrolPoint()
 	}
 }
 
+void AFPSAIGuard::OnRep_GuardState()
+{
+	BP_OnStateChanged(GuardState);
+}
+
+void AFPSAIGuard::SetGuardState(EAIState NewGuardState)
+{
+	if (GuardState == NewGuardState) 
+	{
+     	return;
+    }
+
+	GuardState = NewGuardState;
+
+	OnRep_GuardState();
+
+}
+
 // Called every frame
 void AFPSAIGuard::Tick(float DeltaTime)
 {
@@ -95,12 +130,20 @@ void AFPSAIGuard::Tick(float DeltaTime)
 	
 
 	//UE_LOG(LogTemp, Warning, TEXT("%f"), Distance);
-	if (GoalDistance <= 100.0)
+	if (GoalDistance <= 100.0 && !bIsSeeingPlayer)
 	{
 		MoveGuardToNextPatrolPoint();
 		//UE_LOG(LogTemp, Warning, TEXT("SimpleMove"));
 	}
 
+}
+
+// esta es para replicar en todos los clientes, significa que esta variable va a ser replicada en todos los clientes
+void AFPSAIGuard::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFPSAIGuard, GuardState);
 }
 
 

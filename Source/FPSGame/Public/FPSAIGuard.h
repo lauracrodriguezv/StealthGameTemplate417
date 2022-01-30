@@ -9,6 +9,15 @@
 class UPawnSensingComponent;
 class AFPS_PathActor;
 
+UENUM(BlueprintType)
+enum class EAIState : uint8
+{
+	GuardState_Idle          UMETA(DisplayName = "Idle"),
+	GuardState_Suspicious    UMETA(DisplayName = "Suspicious"),
+	GuardState_Alerted       UMETA(DisplayName = "Alerted"),
+};
+
+
 UCLASS()
 class FPSGAME_API AFPSAIGuard : public ACharacter
 {
@@ -55,6 +64,14 @@ protected:
 
 	FTimerHandle TimerHandle_ResetOrientation;
 
+	UPROPERTY(ReplicatedUsing=OnRep_GuardState)
+	EAIState GuardState;
+
+	UFUNCTION()
+	void OnRep_GuardState();
+
+	void SetGuardState(EAIState NewGuardState);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -62,8 +79,11 @@ public:
 
 protected:
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
 	void BP_MovePlayer();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
+	void BP_OnStateChanged(EAIState NewGuardState);
 
 
 
